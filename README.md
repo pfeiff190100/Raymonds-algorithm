@@ -1,2 +1,2 @@
-# Raymonds-algorithm
-Python implementation for raymond's algorithm.
+# Raymonds-Algorithm
+Python implementation for Raymond's Algorithm.
