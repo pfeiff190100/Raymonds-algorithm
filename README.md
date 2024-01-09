@@ -6,6 +6,6 @@ Algorithm overview: Kevin
 
 Pseudocode: Jan
 
-Socket connections: Emanuel
+Server: Emanuel
 
 Algorithm implementation: Stefan, Simon PuntiGamer
