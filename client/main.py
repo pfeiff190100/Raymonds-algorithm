@@ -7,26 +7,36 @@ class Node:
     def __init__(self, port):
         self.id = None
         self.server_address = ('ableytner.ddns.net', 20004)
-        self.port = port
+        self.client_address = None
+        self.client_port = port
         self.parent_address = None
         self.parent_port = None
-        self.requests = queue.Queue()
         self.has_token = False
+        self.token = None
+        self.requests = queue.Queue()
 
-        self.socket_connection()
+        self.inital_socket_con()
 
         
-    def socket_connection(self):
+    def inital_socket_con(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(self.server_address)
-        host = sock.getsockname()[0]
+        self.client_address = sock.getsockname()[0]
 
-        sock.send(json.dumps({"address": host,
-                   "port": self.port}).encode())
+        sock.send(json.dumps({"address": self.client_address,
+                   "port": self.client_port}).encode())
 
-        data = self.sock.recv(1024)
-        message = data.decode()
-        print(f'Received message: {message}')
+        data = sock.recv(1024)
+        message = json.loads(data.decode())
+
+        self.id = message["id"]
+        if "token" in message.keys():
+            self.has_token = True
+            self.token = message["token"]
+        else:
+            self.parent_address = message["parent"]["address"]
+            self.parent_address = message["parent"]["port"]
+        sock.close()
 
     def listen_for_messages(self):
         while True:
@@ -57,5 +67,7 @@ class Node:
             self.sock.sendto(message.encode(), next_node_address)
             self.has_token = False
 
-node = Node(123)
+for i in range(10):
+    Node(i)
+
 #node.request_token()
