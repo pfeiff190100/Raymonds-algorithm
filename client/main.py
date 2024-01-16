@@ -3,6 +3,8 @@ import socketserver
 import queue
 import threading
 import json
+from prompt_toolkit import PromptSession
+from prompt_toolkit.patch_stdout import patch_stdout
 
 class NodeHandler(socketserver.BaseRequestHandler):
     def handle(self):
@@ -16,6 +18,7 @@ class NodeHandler(socketserver.BaseRequestHandler):
         if message.startswith('RETURN-TOKEN'):
             data = message.split("|")
             self.server.node.token = data[1]
+            self.server.node.has_token = True
             self.server.node.receive_token()
 
 class NodeServer(socketserver.TCPServer):
@@ -70,7 +73,6 @@ class Node:
             self.receive_token()
 
     def receive_token(self):
-        self.has_token = True
         if not self.requests.empty():
             next_node_address = self.requests.get().split("|")
             next_node_address = (next_node_address[0], int(next_node_address [1]))
@@ -86,9 +88,12 @@ class Node:
             self.has_token = False
             self.token = None
 
-            self.update_structure()
         else:
+            self.parent_address = None
+            self.parent_port = None
             print(f"Node {self.id} got the token: {self.token}")
+        
+        self.update_structure()
 
     def update_structure(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -100,5 +105,28 @@ class Node:
                    }}).encode())
         sock.close()
 
-for i in range(10):
-    Node(i + 2000)
+    def process_command(self, command):
+        if command.startswith("gettoken"):
+            self.request_token()
+
+def create_nodes(num_nodes):
+    nodes = []
+    for i in range(num_nodes):
+        node = Node(i + 2000)
+        nodes.append(node)
+    return nodes
+
+nodes = create_nodes(5)
+
+session = PromptSession()
+
+while True:
+    with patch_stdout():
+        command = session.prompt(":> ")
+    if command.startswith("gettoken"):
+        _, node_id = command.split()
+        node_id = int(node_id) - 1
+        if node_id < len(nodes):
+            nodes[node_id].process_command(command)
+        else:
+            print(f"No node with id {node_id}")
