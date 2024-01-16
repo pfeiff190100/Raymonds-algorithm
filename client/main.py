@@ -80,16 +80,25 @@ class Node:
             token_sock.connect(next_node_address)
             token_sock.send(message.encode())
             token_sock.close()
+
             self.parent_address = next_node_address[0]
             self.parent_port = next_node_address[1]
             self.has_token = False
             self.token = None
+
+            self.update_structure()
         else:
             print(f"Node {self.id} got the token: {self.token}")
 
+    def update_structure(self):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect(self.server_address)
+        sock.send(json.dumps({"node_id": self.id,
+                   "parent": {
+                       "address": self.parent_address,
+                       "port": self.parent_port
+                   }}).encode())
+        sock.close()
+
 for i in range(10):
-    if i == 3:
-        node = Node(i + 2000)
-        node.request_token()
-    else:
-        Node(i + 2000)
+    Node(i + 2000)
