@@ -51,27 +51,43 @@ class MyHandler(BaseRequestHandler):
         print(f"{self.client_address[0]} added as {node.address}:{node.port}")
 
     def update_node_parent(self, data):
-        node_id = data["mode_id"]
+        node_id = data["node_id"]
         node = nodes[node_id]
         parent = (data["parent"]["address"], data["parent"]["port"])
-
-        parent_id = None
-        for n in nodes.values():
-            if n.address == parent[0] and n.port == parent[1]:
-                parent_id = n.id
-        node.parent_id = parent_id
+        
+        if parent[0] == None and parent[1] == None:
+            node.parent_id = None
+        else:
+            parent_id = None
+            for n in nodes.values():
+                if n.address == parent[0] and n.port == parent[1]:
+                    parent_id = n.id
+            node.parent_id = parent_id
 
 def print_func():
     while True:
-        tree = Tree()
+        try:
+            tree = Tree()
 
-        # tree.create_node("1", "1")
-        for n in nodes.values():
-            tree.create_node(n.id, n.id, n.parent_id)
+            # add top of the tree
+            for n in nodes.values():
+                if n.parent_id == None:
+                    tree.create_node(n.id, n.id, n.parent_id)
+            
+            while len(tree.all_nodes()) < len(nodes):
+                for n in nodes.values():
+                    tree_ids = [tn.identifier for tn in tree.all_nodes()]
+                    if n.id not in tree_ids and n.parent_id in tree_ids:
+                        tree.create_node(n.id, n.id, n.parent_id)
+
             os.system("cls")
             tree.show()
-        
-        sleep(1)
+
+            sleep(1)
+        except Exception as e:
+            print("visualisation errored")
+            raise e
+            sleep(1)
 
 if __name__ == "__main__":
     if "treelib" in sys.modules:
