@@ -128,6 +128,6 @@ while True:
         _, node_id = command.split()
         node_id = int(node_id) - 1
         if node_id < len(nodes):
-            nodes[node_id].process_command(command)
+            nodes[node_id].process_command()
         else:
             print(f"No node with id {node_id}")
