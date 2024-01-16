@@ -1,10 +1,12 @@
+import json
+import queue
 import socket
 import socketserver
-import queue
 import threading
-import json
+
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
+
 
 class NodeHandler(socketserver.BaseRequestHandler):
     def handle(self):
@@ -116,14 +118,14 @@ def create_nodes(num_nodes):
         nodes.append(node)
     return nodes
 
-nodes = create_nodes(5)
+nodes = create_nodes(30)
 
 session = PromptSession()
 
 while True:
     with patch_stdout():
         command = session.prompt(":> ")
-    if command.startswith("gettoken"):
+    if command.startswith("gt") or command.startswith("gettoken"):
         _, node_id = command.split()
         node_id = int(node_id) - 1
         if node_id < len(nodes):
