@@ -11,6 +11,8 @@ try:
 except:
     pass
 
+MAX_NODES_PER_LAYER = 3
+
 @dataclass
 class Node():
     id: int
@@ -20,6 +22,7 @@ class Node():
 
 token = "ThisIsTheSuperSecretToken"
 nodes: dict[int, Node] = {}
+tree_changed = True
 
 class MyHandler(BaseRequestHandler):
     def handle(self):
@@ -35,6 +38,9 @@ class MyHandler(BaseRequestHandler):
         elif "node_id" in data and "parent" in data:
             self.update_node_parent(data)
 
+        global tree_changed
+        tree_changed = True
+
     def add_node_to_grid(self, data):
         node_id = len(nodes) + 1
 
@@ -43,7 +49,10 @@ class MyHandler(BaseRequestHandler):
             node = Node(node_id, data["address"], int(data["port"]), None)
             self.request.send(json.dumps({"token": token, "id": node.id}).encode())
         else:
-            parent = nodes[node_id-1]
+            # parent = nodes[node_id-1]
+            parent_id = self.get_next_parent_id()
+            print(parent_id)
+            parent = nodes[parent_id]
             node = Node(node_id, data["address"], int(data["port"]), parent.id)
             self.request.send(json.dumps({"parent": {"address": parent.address, "port": parent.port}, "id": node.id}).encode())
         
@@ -64,30 +73,59 @@ class MyHandler(BaseRequestHandler):
                     parent_id = n.id
             node.parent_id = parent_id
 
+    def get_next_parent_id(self) -> int:
+        tree = create_tree()
+
+        leaves = []
+        for node in nodes.values():
+            c = 0
+            for n in nodes.values():
+                if n.parent_id == node.id:
+                    c += 1
+            if c < MAX_NODES_PER_LAYER:
+                leaves.append(node)
+
+        min_depth_node = None
+        for leave in leaves:
+            if min_depth_node == None:
+                min_depth_node = leave
+            else:
+                if tree.level(leave.id) < tree.level(min_depth_node.id):
+                    min_depth_node = leave
+        
+        return min_depth_node.id
+
 def print_func():
     while True:
         try:
-            tree = Tree()
-
-            # add top of the tree
-            for n in nodes.values():
-                if n.parent_id == None:
-                    tree.create_node(n.id, n.id, n.parent_id)
-            
-            while len(tree.all_nodes()) < len(nodes):
-                for n in nodes.values():
-                    tree_ids = [tn.identifier for tn in tree.all_nodes()]
-                    if n.id not in tree_ids and n.parent_id in tree_ids:
-                        tree.create_node(n.id, n.id, n.parent_id)
-
-            os.system("cls")
-            tree.show()
+            global tree_changed
+            if tree_changed:
+                tree_changed = False
+                tree = create_tree()
+                os.system("cls")
+                tree.show()
 
             sleep(1)
         except Exception as e:
             print("visualisation errored")
             raise e
             sleep(1)
+
+def create_tree() -> Tree:
+    tree = Tree()
+
+    # add top of the tree
+    for n in nodes.values():
+        if n.parent_id == None:
+            tree.create_node(n.id, n.id, n.parent_id)
+    
+    while len(tree.all_nodes()) < len(nodes):
+        for n in nodes.values():
+            tree_ids = [tn.identifier for tn in tree.all_nodes()]
+            if n.id not in tree_ids and n.parent_id in tree_ids:
+                tree.create_node(n.id, n.id, n.parent_id)
+
+    return tree
 
 if __name__ == "__main__":
     if "treelib" in sys.modules:
