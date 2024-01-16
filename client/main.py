@@ -107,9 +107,8 @@ class Node:
                    }}).encode())
         sock.close()
 
-    def process_command(self, command):
-        if command.startswith("gettoken"):
-            self.request_token()
+    def process_command(self):
+        self.request_token()
 
 def create_nodes(num_nodes):
     nodes = []
