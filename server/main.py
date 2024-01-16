@@ -16,9 +16,10 @@ class Node():
     id: int
     address: str
     port: int
+    parent_id: int | None
 
 token = "ThisIsTheSuperSecretToken"
-nodes: list[Node] = []
+nodes: dict[int, Node] = {}
 
 class MyHandler(BaseRequestHandler):
     def handle(self):
@@ -26,32 +27,51 @@ class MyHandler(BaseRequestHandler):
 
         data = self.request.recv(1024).strip()
         data = json.loads(data)
-        node = Node(len(nodes) + 1, data["address"], int(data["port"]))
+
+        # add node to the network
+        if "address" in data and "port" in data:
+            self.add_node_to_grid(data)
+        # update parent of node
+        elif "node_id" in data and "parent" in data:
+            self.update_node_parent(data)
+
+    def add_node_to_grid(self, data):
+        node_id = len(nodes) + 1
 
         # check if node is the first one
         if len(nodes) == 0:
+            node = Node(node_id, data["address"], int(data["port"]), None)
             self.request.send(json.dumps({"token": token, "id": node.id}).encode())
         else:
-            parent = nodes[-1]
+            parent = nodes[node_id-1]
+            node = Node(node_id, data["address"], int(data["port"]), parent.id)
             self.request.send(json.dumps({"parent": {"address": parent.address, "port": parent.port}, "id": node.id}).encode())
         
-        nodes.append(node)
+        nodes[node_id] = node
         print(f"{self.client_address[0]} added as {node.address}:{node.port}")
 
+    def update_node_parent(self, data):
+        node_id = data["mode_id"]
+        node = nodes[node_id]
+        parent = (data["parent"]["address"], data["parent"]["port"])
+
+        parent_id = None
+        for n in nodes.values():
+            if n.address == parent[0] and n.port == parent[1]:
+                parent_id = n.id
+        node.parent_id = parent_id
+
 def print_func():
-    tree = Tree()
-    while len(nodes) == 0:
-        sleep(1)
-
-    tree.create_node("1", "1")
-    nodes_len = 1
-
     while True:
-        if len(nodes) > nodes_len:
-            tree.create_node(str(nodes_len + 1), str(nodes_len + 1), str(nodes_len))
-            nodes_len += 1
+        tree = Tree()
+
+        # tree.create_node("1", "1")
+        for n in nodes.values():
+            tree.create_node(n.id, n.id, n.parent_id)
             os.system("cls")
             tree.show()
+        
+        sleep(1)
 
 if __name__ == "__main__":
     if "treelib" in sys.modules:
